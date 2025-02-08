@@ -76,7 +76,7 @@ export default function Home() {
         {/* Top row - Up button */}
         <div className="col-span-3 flex justify-center">
           <button
-            className="w-20 h-20 text-white rounded-lg flex items-center justify-center hover:bg-gray-800"
+            className="w-20 h-20 md:w-20 md:h-20 w-24 h-24 text-white rounded-lg flex items-center justify-center hover:bg-gray-800 select-none"
             onMouseDown={() => handleButtonDown("up")}
             onMouseUp={handleButtonUp}
             onTouchStart={() => handleButtonDown("up")}
@@ -88,7 +88,7 @@ export default function Home() {
 
         {/* Middle row - Left, Empty space, Right buttons */}
         <button
-          className="w-20 h-20 text-white rounded-lg flex items-center justify-center hover:bg-gray-800"
+          className="w-20 h-20 md:w-20 md:h-20 w-24 h-24 text-white rounded-lg flex items-center justify-center hover:bg-gray-800 select-none"
           onMouseDown={() => handleButtonDown("left")}
           onMouseUp={handleButtonUp}
           onTouchStart={() => handleButtonDown("left")}
@@ -98,7 +98,7 @@ export default function Home() {
         </button>
         <div></div>
         <button
-          className="w-20 h-20 text-white rounded-lg flex items-center justify-center hover:bg-gray-800"
+          className="w-20 h-20 md:w-20 md:h-20 w-24 h-24 text-white rounded-lg flex items-center justify-center hover:bg-gray-800 select-none"
           onMouseDown={() => handleButtonDown("right")}
           onMouseUp={handleButtonUp}
           onTouchStart={() => handleButtonDown("right")}
@@ -110,7 +110,7 @@ export default function Home() {
         {/* Bottom row - Down button */}
         <div className="col-span-3 flex justify-center">
           <button
-            className="w-20 h-20 text-white rounded-lg flex items-center justify-center hover:bg-gray-800"
+            className="w-20 h-20 md:w-20 md:h-20 w-24 h-24 text-white rounded-lg flex items-center justify-center hover:bg-gray-800 select-none"
             onMouseDown={() => handleButtonDown("down")}
             onMouseUp={handleButtonUp}
             onTouchStart={() => handleButtonDown("down")}
