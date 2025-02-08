@@ -1,101 +1,125 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import mqtt from "mqtt";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [client, setClient] = useState<mqtt.MqttClient | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  useEffect(() => {
+    // Connect to MQTT broker
+    const mqttClient = mqtt.connect("ws://grass-bracketbot.local:9001", {
+      protocol: "ws",
+      clientId: "nextjs_client_" + Math.random().toString(16).substring(2, 8),
+    });
+
+    mqttClient.on("connect", () => {
+      console.log("Connected to MQTT broker");
+      setIsConnected(true);
+    });
+
+    mqttClient.on("error", (err) => {
+      console.error("MQTT error:", err);
+      setIsConnected(false);
+    });
+
+    setClient(mqttClient);
+
+    return () => {
+      mqttClient.end();
+    };
+  }, []);
+
+  const sendCommand = (command: string) => {
+    if (client && isConnected) {
+      client.publish("robot/drive", command);
+      console.log("Sent command:", command);
+    }
+  };
+
+  const handleButtonDown = (direction: string) => {
+    switch (direction) {
+      case "up":
+        sendCommand("forward");
+        break;
+      case "down":
+        sendCommand("back");
+        break;
+      case "left":
+        sendCommand("left");
+        break;
+      case "right":
+        sendCommand("right");
+        break;
+    }
+  };
+
+  const handleButtonUp = () => {
+    sendCommand("stop");
+  };
+
+  return (
+    <div className="h-screen w-screen bg-black flex items-center justify-center">
+      <div className="grid grid-cols-3 gap-4">
+        {/* Connection status indicator */}
+        <div className="col-span-3 mb-4 flex justify-center">
+          <div
+            className={`px-4 py-2 rounded-full text-sm ${
+              isConnected ? "bg-green-500" : "bg-red-500"
+            }`}
           >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            {isConnected ? "Connected" : "Disconnected"}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        {/* Top row - Up button */}
+        <div className="col-span-3 flex justify-center">
+          <button
+            className="w-20 h-20 text-white rounded-lg flex items-center justify-center hover:bg-gray-800"
+            onMouseDown={() => handleButtonDown("up")}
+            onMouseUp={handleButtonUp}
+            onTouchStart={() => handleButtonDown("up")}
+            onTouchEnd={handleButtonUp}
+          >
+            ↑
+          </button>
+        </div>
+
+        {/* Middle row - Left, Empty space, Right buttons */}
+        <button
+          className="w-20 h-20 text-white rounded-lg flex items-center justify-center hover:bg-gray-800"
+          onMouseDown={() => handleButtonDown("left")}
+          onMouseUp={handleButtonUp}
+          onTouchStart={() => handleButtonDown("left")}
+          onTouchEnd={handleButtonUp}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          ←
+        </button>
+        <div></div>
+        <button
+          className="w-20 h-20 text-white rounded-lg flex items-center justify-center hover:bg-gray-800"
+          onMouseDown={() => handleButtonDown("right")}
+          onMouseUp={handleButtonUp}
+          onTouchStart={() => handleButtonDown("right")}
+          onTouchEnd={handleButtonUp}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          →
+        </button>
+
+        {/* Bottom row - Down button */}
+        <div className="col-span-3 flex justify-center">
+          <button
+            className="w-20 h-20 text-white rounded-lg flex items-center justify-center hover:bg-gray-800"
+            onMouseDown={() => handleButtonDown("down")}
+            onMouseUp={handleButtonUp}
+            onTouchStart={() => handleButtonDown("down")}
+            onTouchEnd={handleButtonUp}
+          >
+            ↓
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
