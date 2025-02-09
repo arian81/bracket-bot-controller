@@ -1,123 +1,174 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import mqtt from "mqtt";
+import { z } from "zod";
+import { format } from "date-fns";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import React from "react";
 
-export default function Home() {
-  const [client, setClient] = useState<mqtt.MqttClient | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+// Define Zod schemas
+const PlayerSchema = z.object({
+  image_path: z.string(),
+  registration_date: z.string(),
+  last_seen: z.string(),
+  wins: z.number(),
+  draws: z.number(),
+  losses: z.number(),
+});
 
-  useEffect(() => {
-    // Connect to MQTT broker
-    const mqttClient = mqtt.connect("ws://grass-bracketbot.local:9001", {
-      protocol: "ws",
-      clientId: "nextjs_client_" + Math.random().toString(16).substring(2, 8),
-    });
+const LeaderboardSchema = z.object({
+  next_player_id: z.number(),
+  players: z.record(z.string(), PlayerSchema),
+});
 
-    mqttClient.on("connect", () => {
-      console.log("Connected to MQTT broker");
-      setIsConnected(true);
-    });
+// type Leaderboard = z.infer<typeof LeaderboardSchema>;
 
-    mqttClient.on("error", (err) => {
-      console.error("MQTT error:", err);
-      setIsConnected(false);
-    });
+async function getLeaderboard() {
+  try {
+    const res = await fetch("http://localhost:8000/leaderboard");
+    if (!res.ok) {
+      throw new Error(
+        `Failed to fetch leaderboard: ${res.status} ${res.statusText}`
+      );
+    }
+    const data = await res.json();
+    return LeaderboardSchema.parse(data);
+  } catch (error) {
+    console.error("Error fetching leaderboard:", error);
+    if (error instanceof z.ZodError) {
+      throw new Error("Invalid leaderboard data format");
+    }
+    throw error;
+  }
+}
 
-    setClient(mqttClient);
+export default function LeaderboardPage() {
+  const [leaderboard, setLeaderboard] = React.useState<z.infer<
+    typeof LeaderboardSchema
+  > | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
-    return () => {
-      mqttClient.end();
-    };
+  React.useEffect(() => {
+    getLeaderboard()
+      .then((data) => setLeaderboard(data))
+      .catch((err) =>
+        setError(
+          err instanceof Error ? err.message : "An unexpected error occurred"
+        )
+      );
   }, []);
 
-  const sendCommand = (command: string) => {
-    if (client && isConnected) {
-      client.publish("robot/drive", command);
-      console.log("Sent command:", command);
-    }
-  };
-
-  const handleButtonDown = (direction: string) => {
-    switch (direction) {
-      case "up":
-        sendCommand("forward");
-        break;
-      case "down":
-        sendCommand("back");
-        break;
-      case "left":
-        sendCommand("left");
-        break;
-      case "right":
-        sendCommand("right");
-        break;
-    }
-  };
-
-  const handleButtonUp = () => {
-    sendCommand("stop");
-  };
-
-  return (
-    <div className="h-screen w-screen bg-black flex items-center justify-center">
-      <div className="grid grid-cols-3 gap-4">
-        {/* Connection status indicator */}
-        <div className="col-span-3 mb-4 flex justify-center">
-          <div
-            className={`px-4 py-2 rounded-full text-sm ${
-              isConnected ? "bg-green-500" : "bg-red-500"
-            }`}
-          >
-            {isConnected ? "Connected" : "Disconnected"}
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h1 className="text-xl font-semibold text-red-800 mb-2">
+              Error Loading Leaderboard
+            </h1>
+            <p className="text-red-600">{error}</p>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Top row - Up button */}
-        <div className="col-span-3 flex justify-center">
-          <button
-            className="w-20 h-20 md:w-20 md:h-20 w-24 h-24 text-white rounded-lg flex items-center justify-center hover:bg-gray-800 select-none"
-            onMouseDown={() => handleButtonDown("up")}
-            onMouseUp={handleButtonUp}
-            onTouchStart={() => handleButtonDown("up")}
-            onTouchEnd={handleButtonUp}
-          >
-            ↑
-          </button>
+  if (!leaderboard) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center">Loading leaderboard...</div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Middle row - Left, Empty space, Right buttons */}
-        <button
-          className="w-20 h-20 md:w-20 md:h-20 w-24 h-24 text-white rounded-lg flex items-center justify-center hover:bg-gray-800 select-none"
-          onMouseDown={() => handleButtonDown("left")}
-          onMouseUp={handleButtonUp}
-          onTouchStart={() => handleButtonDown("left")}
-          onTouchEnd={handleButtonUp}
-        >
-          ←
-        </button>
-        <div></div>
-        <button
-          className="w-20 h-20 md:w-20 md:h-20 w-24 h-24 text-white rounded-lg flex items-center justify-center hover:bg-gray-800 select-none"
-          onMouseDown={() => handleButtonDown("right")}
-          onMouseUp={handleButtonUp}
-          onTouchStart={() => handleButtonDown("right")}
-          onTouchEnd={handleButtonUp}
-        >
-          →
-        </button>
+  const players = Object.entries(leaderboard.players).map(([id, player]) => ({
+    id,
+    ...player,
+    image_path: `http://localhost:8000/image/${player.image_path}`,
+  }));
 
-        {/* Bottom row - Down button */}
-        <div className="col-span-3 flex justify-center">
-          <button
-            className="w-20 h-20 md:w-20 md:h-20 w-24 h-24 text-white rounded-lg flex items-center justify-center hover:bg-gray-800 select-none"
-            onMouseDown={() => handleButtonDown("down")}
-            onMouseUp={handleButtonUp}
-            onTouchStart={() => handleButtonDown("down")}
-            onTouchEnd={handleButtonUp}
-          >
-            ↓
-          </button>
+  // Sort players by wins (descending)
+  const sortedPlayers = players.sort((a, b) => b.wins - a.wins);
+
+  return (
+    <div className="min-h-screen bg-gray-100 py-8 px-4">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+          Grassy Leaderboard
+        </h1>
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Rank</TableHead>
+                <TableHead>Player</TableHead>
+                <TableHead>Wins</TableHead>
+                <TableHead>Draws</TableHead>
+                <TableHead>Losses</TableHead>
+                <TableHead>Last Seen</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedPlayers.map((player, index) => (
+                <TableRow
+                  key={player.id}
+                  className={
+                    index === 2 ? "border-b-8 border-gray-200 rounded-full" : ""
+                  }
+                >
+                  <TableCell>
+                    <span
+                      className={
+                        index === 0
+                          ? "text-yellow-500 font-bold"
+                          : index === 1
+                          ? "text-gray-400 font-bold"
+                          : index === 2
+                          ? "text-amber-600 font-bold"
+                          : ""
+                      }
+                    >
+                      {index + 1}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage
+                            src={player.image_path}
+                            alt={`Player ${player.id}`}
+                            className="object-cover [filter:saturate(1.4)_brightness(0.9)]"
+                          />
+                          <AvatarFallback>P{player.id}</AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium">
+                          Player {player.id}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{player.wins}</TableCell>
+                  <TableCell>{player.draws}</TableCell>
+                  <TableCell>{player.losses}</TableCell>
+                  <TableCell>
+                    {format(new Date(player.last_seen), "MMM d, yyyy HH:mm")}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </div>
     </div>
