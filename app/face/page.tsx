@@ -195,7 +195,7 @@ export default function FacePage() {
       {isLoading ? (
         <div className="w-full h-full flex items-center justify-center">
           <span className="text-white text-9xl font-bold">
-            Loading<span className="dots-animation"></span>
+            Thinking<span className="dots-animation"></span>
           </span>
         </div>
       ) : isCountingDown ? (
