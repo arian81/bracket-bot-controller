@@ -8,7 +8,7 @@ import {
   Alignment,
 } from "@rive-app/react-canvas";
 import mqtt from "mqtt";
-import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { z } from "zod";
 
 const emotionSchema = z.object({
@@ -83,8 +83,8 @@ export default function FacePage() {
   };
 
   // const [emotionChange, setEmotionChange] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [client, setClient] = useState<mqtt.MqttClient | null>(null);
+  // const [isConnected, setIsConnected] = useState(false);
+  // const [client, setClient] = useState<mqtt.MqttClient | null>(null);
 
   // useEffect(() => {
   //   let interval: NodeJS.Timeout;
@@ -113,7 +113,7 @@ export default function FacePage() {
 
     mqttClient.on("connect", () => {
       console.log("Connected to MQTT broker");
-      setIsConnected(true);
+      // setIsConnected(true);
 
       // Subscribe to the emotion topic
       mqttClient.subscribe("#", (err) => {
@@ -124,7 +124,7 @@ export default function FacePage() {
 
     mqttClient.on("error", (err) => {
       console.error("MQTT error:", err);
-      setIsConnected(false);
+      // setIsConnected(false);
     });
 
     // Add message handler
@@ -153,7 +153,7 @@ export default function FacePage() {
         // Continue execution, ignoring malformed messages
       }
     });
-    setClient(mqttClient);
+    // setClient(mqttClient);
 
     return () => {
       mqttClient.end();
