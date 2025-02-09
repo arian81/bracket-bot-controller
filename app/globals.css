@@ -85,3 +85,32 @@ html {
     @apply bg-background text-foreground;
   }
 }
+
+.dots-animation {
+  display: inline-block;
+}
+
+.dots-animation::after {
+  content: "...";
+  display: inline-block;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%,
+  20% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  50% {
+    transform: translateY(0);
+  }
+  60% {
+    transform: translateY(-7px);
+  }
+  80% {
+    transform: translateY(0);
+  }
+}

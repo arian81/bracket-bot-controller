@@ -8,11 +8,11 @@ import {
   Alignment,
 } from "@rive-app/react-canvas";
 import mqtt from "mqtt";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 const emotionSchema = z.object({
-  emotion: z.enum(["happy", "sad", "smug", "talking"]),
+  emotion: z.enum(["happy", "sad", "smug", "talking", "countdown", "loading"]),
 });
 
 export default function FacePage() {
@@ -70,15 +70,45 @@ export default function FacePage() {
   const talkingButton = useRef<HTMLButtonElement | null>(null);
   const smugButton = useRef<HTMLButtonElement | null>(null);
 
-  const changeEmotion = (emotion: "happy" | "sad" | "smug" | "talking") => {
-    if (emotion === "happy") {
-      happyButton.current?.click();
-    } else if (emotion === "sad") {
-      sadButton.current?.click();
-    } else if (emotion === "smug") {
-      smugButton.current?.click();
-    } else if (emotion === "talking") {
-      talkingButton.current?.click();
+  // Add countdown state
+  const [countdown, setCountdown] = useState<string | null>(null);
+  const [isCountingDown, setIsCountingDown] = useState(false);
+
+  // Add loading state
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Add countdown logic
+  const startCountdown = () => {
+    setIsCountingDown(true);
+    setCountdown("Rock");
+
+    setTimeout(() => setCountdown("Paper"), 1000);
+    setTimeout(() => setCountdown("Scissors"), 2000);
+    setTimeout(() => setCountdown("Shoot!"), 3000);
+    setTimeout(() => {
+      setCountdown(null);
+      setIsCountingDown(false);
+    }, 4000);
+  };
+
+  const changeEmotion = (
+    emotion: "happy" | "sad" | "smug" | "talking" | "countdown" | "loading"
+  ) => {
+    if (emotion === "countdown") {
+      startCountdown();
+    } else if (emotion === "loading") {
+      setIsLoading(true);
+    } else {
+      setIsLoading(false);
+      if (emotion === "happy") {
+        happyButton.current?.click();
+      } else if (emotion === "sad") {
+        sadButton.current?.click();
+      } else if (emotion === "smug") {
+        smugButton.current?.click();
+      } else if (emotion === "talking") {
+        talkingButton.current?.click();
+      }
     }
   };
 
@@ -162,9 +192,21 @@ export default function FacePage() {
 
   return (
     <div className="h-screen w-screen bg-black flex flex-col items-center justify-center">
-      <div className="w-full h-full max-w-2xl max-h-2xl">
-        <RiveComponent className="w-full h-full" />
-      </div>
+      {isLoading ? (
+        <div className="w-full h-full flex items-center justify-center">
+          <span className="text-white text-9xl font-bold">
+            Loading<span className="dots-animation"></span>
+          </span>
+        </div>
+      ) : isCountingDown ? (
+        <div className="w-full h-full flex items-center justify-center">
+          <span className="text-white text-9xl font-bold">{countdown}</span>
+        </div>
+      ) : (
+        <div className="w-full h-full max-w-2xl max-h-2xl">
+          <RiveComponent className="w-full h-full [filter:saturate(1.2)_brightness(0.9)]" />
+        </div>
+      )}
       <div className="absolute bottom-10 flex gap-4">
         <button
           onClick={() => {
